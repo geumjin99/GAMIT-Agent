@@ -10,7 +10,7 @@ Existing wrappers automate *running* the pipeline; GAMIT-Agent adds the missing 
 "legal but wrong" errors that raise no message, and produces a QC verdict — behind a web UI and
 a model-agnostic, bring-your-own-key LLM engine.
 
-This repository accompanies a *GPS Toolbox* article published in *GPS Solutions* (Springer).
+This repository accompanies a paper that is currently under submission.
 
 ---
 
@@ -67,4 +67,4 @@ Apache License 2.0 — see [`LICENSE`](LICENSE). GAMIT/GLOBK is **not** included
 its own license from MIT.
 
 ## Citation
-If you use GAMIT-Agent, please cite the *GPS Toolbox* article in *GPS Solutions*.
+If you use GAMIT-Agent, please cite the accompanying paper (currently under submission).
