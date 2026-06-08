@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GAMIT-Agent — LLM-driven GAMIT processing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg class="mark" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>
+    </svg>
+    GAMIT-Agent <span class="sub">LLM-driven GNSS processing</span>
+  </div>
+  <div class="topbar-right">
+    <span id="model-pill" class="pill">model: …</span>
+    <button id="btn-logs" class="btn" title="Backend logs" type="button">Logs</button>
+    <button id="btn-settings" class="btn" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m-7-3.5 5.2-3m5.6-3.2L21 3.5m0 17-5.2-3m-5.6-3.2L5 17.5m0-11 5.2 3m5.6 3.2L21 8.5"/></svg>
+      Settings
+    </button>
+    <span id="status" class="pill idle">Ready</span>
+  </div>
+</header>
+
+<main class="workspace">
+  <aside class="panel panel-left">
+    <details class="newproj">
+      <summary>＋ New project (from bare RINEX)</summary>
+      <label class="fld">Local RINEX path (directory)
+        <div class="row"><input id="np-src" type="text" placeholder="Click Browse, or paste a path" />
+          <button id="np-browse" class="btn" type="button">Browse…</button></div></label>
+      <div class="row">
+        <label class="fld half">Experiment<input id="np-expt" type="text" placeholder="e.g. ksub" /></label>
+        <label class="fld half">Year<input id="np-year" type="text" placeholder="2023" /></label>
+      </div>
+      <label class="fld">Project dir (blank = experiments/&lt;expt&gt;)
+        <input id="np-dir" type="text" placeholder="auto" /></label>
+      <button id="btn-init" class="btn primary">Build project (init_project)</button>
+      <div id="np-result" class="np-result"></div>
+    </details>
+
+    <h3>Project</h3>
+    <label class="fld">Directory
+      <input id="proj-dir" type="text" value="experiments/knet_2023_100" /></label>
+    <label class="fld">Experiment (expt)
+      <input id="proj-expt" type="text" placeholder="auto" /></label>
+    <div class="row">
+      <button id="btn-load" class="btn primary">Load stations</button>
+      <label class="chk"><input type="checkbox" id="opt-audit" checked> Audit antennas</label>
+    </div>
+    <div id="days" class="days"></div>
+    <h4>Stations <span id="stn-count"></span></h4>
+    <div id="stn-list" class="stn-list"></div>
+    <div class="legend">
+      <span><i class="dot ok"></i>OK</span>
+      <span><i class="dot bad"></i>Antenna mismatch</span>
+      <span><i class="dot warn"></i>High std</span>
+    </div>
+
+    <h4>Analysis (current project)</h4>
+    <div class="row">
+      <input id="tool-doy" type="text" class="fld-inline" placeholder="doy, e.g. 100" />
+    </div>
+    <div class="row toolbtns">
+      <button id="btn-qc" class="btn" type="button">QC verdict</button>
+      <button id="btn-drops" class="btn" type="button">Dropped sites</button>
+      <button id="btn-geom" class="btn" type="button">Network geometry</button>
+    </div>
+    <div id="tool-result" class="tool-result"></div>
+  </aside>
+
+  <section class="panel panel-map">
+    <div id="map"></div>
+    <div id="detail" class="detail hidden"></div>
+  </section>
+
+  <aside class="panel panel-chat">
+    <h3>Agent</h3>
+    <div id="log" class="log"></div>
+    <div class="composer">
+      <textarea id="instruction" rows="3" placeholder="e.g. Run knet 2023/100 and audit metadata; or: why did this day abort?"></textarea>
+      <div class="row">
+        <button id="btn-run" class="btn primary" title="Run (Ctrl/Cmd+Enter)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="6 4 20 12 6 20 6 4" fill="currentColor" stroke="none"/></svg>
+          Run</button>
+        <button id="btn-stop" class="btn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" stroke="none"/></svg>
+          Stop</button>
+        <span class="kbd-hint">Ctrl/⌘+Enter</span>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="settings" class="modal hidden">
+  <div class="modal-box">
+    <h3>Settings — bring your own key</h3>
+    <label class="fld">DeepSeek / OpenAI-compatible API key
+      <input id="cfg-key" type="password" placeholder="sk-… (paste in full incl. the leading sk; kept in memory only, never written to disk)" /></label>
+    <label class="fld">Base URL
+      <input id="cfg-base" type="text" value="https://api.deepseek.com" /></label>
+    <label class="fld">Model
+      <input id="cfg-model" type="text" value="deepseek-chat" /></label>
+    <div class="row">
+      <button id="cfg-save" class="btn primary">Save</button>
+      <button id="cfg-close" class="btn">Close</button>
+    </div>
+    <p class="hint">The engine is an OpenAI-compatible API; to switch to a GPT/Claude gateway just change Base URL + Model + Key. Don't drop the leading "sk" when pasting the key.</p>
+  </div>
+</div>
+
+<div id="browser" class="modal hidden">
+  <div class="modal-box">
+    <h3>Select a local data folder</h3>
+    <div id="br-path" class="br-path">/</div>
+    <div class="row">
+      <button id="br-up" class="btn" type="button">↑ Up</button>
+      <button id="br-use" class="btn primary" type="button">Use this folder</button>
+      <button id="br-close" class="btn" type="button">Close</button>
+    </div>
+    <div id="br-list" class="br-list"></div>
+    <p class="hint">The green number is the count of recognizable RINEX files in that folder; click a folder name to go in. Drill down to the level that actually contains RINEX, then "Use this folder".</p>
+  </div>
+</div>
+
+<div id="logs" class="modal hidden">
+  <div class="modal-box wide">
+    <h3>Backend logs</h3>
+    <div class="row">
+      <button id="logs-refresh" class="btn" type="button">Refresh</button>
+      <label class="chk"><input type="checkbox" id="logs-auto"> Auto (3s)</label>
+      <button id="logs-close" class="btn">Close</button>
+    </div>
+    <pre id="logs-body" class="logs-body"></pre>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

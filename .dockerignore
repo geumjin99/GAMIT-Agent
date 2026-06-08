@@ -1,0 +1,9 @@
+# 不打进镜像:产物、缓存、实验大数据、密钥
+experiments/
+**/__pycache__/
+**/*.pyc
+**/.env
+.git/
+*.log
+docs/
+*.pdf

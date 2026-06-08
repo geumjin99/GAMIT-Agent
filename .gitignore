@@ -1,0 +1,38 @@
+# --- secrets / local config ---
+.env
+app/.env
+*.key
+*.pem
+
+# --- python ---
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# --- runtime / generated artifacts ---
+logs/
+runs/
+app/logs/
+app/runs/
+app/probe/
+
+# --- large local data / processing dirs (do not commit) ---
+data/*
+!data/.gitkeep
+experiments/
+
+# --- paper / submission materials (kept private) ---
+paper/
+
+# --- internal dev notes ---
+progress.md
+ROADMAP.md
+
+# --- OS / editor ---
+.DS_Store
+*.swp
+
+# internal gap-analysis note (references a separate private project)
+docs/real-world-gap-analysis.md

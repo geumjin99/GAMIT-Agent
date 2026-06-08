@@ -1,0 +1,31 @@
+# GAMIT-Agent docker-compose —— 把挂载/端口/密钥固化,降低上手门槛。
+# 改下面 4 处路径/密钥后:docker compose up --build
+services:
+  gamit-agent:
+    build: .
+    image: gamit-agent
+    ports:
+      - "8765:8765"
+    volumes:
+      # ① 已装好的 GAMIT/GLOBK(必填,改成你的 ~/gg 绝对路径)
+      - ${GG_PATH:-${HOME}/gg}:/gg
+      # ② 你的裸 RINEX / 数据(只读;按需改路径,UI 里填容器内 /data/...)
+      - ${DATA_PATH:-./data}:/data:ro
+      # ③ 工程产物 / 运行历史 / 日志持久化到宿主(容器重启不丢)
+      - ./experiments:/opt/gamit-agent/app/experiments
+      - ./runs:/opt/gamit-agent/app/runs
+      - ./logs:/opt/gamit-agent/app/logs
+    environment:
+      # ④ 自带 key(也可留空,在 UI 的 Settings 里填)
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      # UI 文件夹浏览器默认起点(指向上面 ② 的挂载点;不挂数据时改成 /opt/gamit-agent/app/experiments)
+      - GAMIT_BROWSE_ROOT=${GAMIT_BROWSE_ROOT:-/data}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8765/api/health"]
+      interval: 30s
+      timeout: 4s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
